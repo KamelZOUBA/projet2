@@ -4,41 +4,44 @@ import requests
 from PIL import Image
 import base64
 import io
+from labels import LABELS_INFO
+from utils import base64ToImage, ouvrirImage
 
 def appelHuggingFace(image_path):
-    with open(image_path, "rb") as f:
-        data = f.read()
+    data = ouvrirImage(image_path)
     response = requests.post(URL_HUGGINGFACE, headers=headers, data=data)
     return response.json()
 
-def base64ToImage(imageBase64):
-    imageBytes = base64.b64decode(imageBase64)
-    return Image.open(io.BytesIO(imageBytes))
 
+def traiterImage(i, image):
+    
+    result = appelHuggingFace(CHEMIN_IMAGES+'/'+image)
+    for index, segment in enumerate(result):
+        label = LABELS_INFO[segment['label']]
+        score = segment['score']
+        imageResultat = base64ToImage(segment['mask']);
+        if(index == 0):
+            imageCompose = Image.new("RGBA", imageResultat.size, (0, 0, 0, 0))
+        coucheCouleur = Image.new("RGBA", imageResultat.size, label['couleur'])
+        imageCompose = Image.composite(coucheCouleur, imageCompose, imageResultat)
+    imageCompose.show()
     
 
 load_dotenv()
 URL_HUGGINGFACE = os.getenv("URL_HUGGINGFACE")
 TOKEN_HUGGINGFACE = os.getenv("TOKEN_HUGGINGFACE")
-CHEMIN_IMAGES = "./top_influenceurs_2024/IMG/"
+CHEMIN = "./top_influenceurs_2024/"
+CHEMIN_IMAGES = CHEMIN + 'IMG/'
+CHEMIN_MASQUES = CHEMIN + 'Mask/'
 
 
 headers = {"Authorization": f"Bearer {TOKEN_HUGGINGFACE}",
            "Content-Type": "image/png"}
 
 
-contenu = os.listdir(CHEMIN_IMAGES)
-def traiterImage(appelHuggingFace, base64ToImage, CHEMIN_IMAGES, image):
-    result = appelHuggingFace(CHEMIN_IMAGES+'/'+image)
-    images = []
-    for masque in result:
-        label = masque['label']
-        score = masque['score']
-        image = base64ToImage(masque['mask']);
-        images.append(image)
-    imageCompose = Image.composite(images[1], images[2], images[0])
-    imageCompose.show()
+imagesInitiales = os.listdir(CHEMIN_IMAGES)
 
-for image in contenu:
-    traiterImage(appelHuggingFace, base64ToImage, CHEMIN_IMAGES, image)
+
+for i, image in enumerate(imagesInitiales):
+    traiterImage(i, image)
 
