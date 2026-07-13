@@ -1,6 +1,7 @@
-def main():
-    print("Hello from projet2!")
+import os
+from dotenv import load_dotenv
 
+load_dotenv()
 
-if __name__ == "__main__":
-    main()
+token = os.getenv("TOKEN_HUGGINGFACE")
+print(token)
